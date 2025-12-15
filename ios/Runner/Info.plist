@@ -45,5 +45,18 @@
 	<true/>
 	<key>UIApplicationSupportsIndirectInputEvents</key>
 	<true/>
+	<key>NSLocationWhenInUseUsageDescription</key>
+    <string>TimeCapsule a besoin de votre position pour déverrouiller les capsules cachées autour de vous.</string>
+    <key>NSLocationAlwaysUsageDescription</key>
+    <string>TimeCapsule a besoin de votre position pour vous alerter des capsules proches.</string>
+
+    <key>NSCameraUsageDescription</key>
+    <string>Nous avons besoin de la caméra pour que vous puissiez créer et enterrer vos souvenirs visuels.</string>
+
+    <key>NSPhotoLibraryUsageDescription</key>
+    <string>Accès nécessaire pour choisir une photo souvenir depuis votre galerie.</string>
+
+    <key>NSMicrophoneUsageDescription</key>
+    <string>Nécessaire pour enregistrer le son de vos vidéos souvenirs.</string>
 </dict>
 </plist>
