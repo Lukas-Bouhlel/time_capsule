@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:time_capsule/routes/router.dart';
 
 class HomePage extends StatelessWidget {
   const HomePage({super.key});
@@ -24,8 +25,7 @@ class HomePage extends StatelessWidget {
       ),
       floatingActionButton: FloatingActionButton(
         onPressed: () {
-          // Action future : Ouvrir la caméra
-          print("Ouverture caméra...");
+           Navigator.pushNamed(context, RouteManager.create);
         },
         child: const Icon(Icons.add),
       ),
