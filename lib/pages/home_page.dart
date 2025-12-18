@@ -3,11 +3,13 @@ import 'package:flutter_map/flutter_map.dart';
 import 'package:latlong2/latlong.dart';
 import 'package:provider/provider.dart';
 import 'package:time_capsule/pages/create_capsule_page.dart';
+import 'package:time_capsule/widgets/capsule_marker.dart';
 import '../providers/capsule_provider.dart';
 import '../providers/location_provider.dart';
 import '../providers/user_provider.dart';
 import '../services/auth_service.dart';
 import '../models/capsule_model.dart';
+import '../widgets/capsule_immersive_view.dart';
 
 class HomePage extends StatefulWidget {
   final void Function(String route, {dynamic arguments})? onNavigate;
@@ -19,7 +21,7 @@ class HomePage extends StatefulWidget {
 
 class _HomePageState extends State<HomePage> {
   final MapController _mapController = MapController();
-  static const int openThreshold = 50;
+  static const int openThreshold = 100;
 
   Future<void> _logout() async {
     await AuthService.logout();
@@ -36,17 +38,17 @@ class _HomePageState extends State<HomePage> {
     WidgetsBinding.instance.addPostFrameCallback((_) async {
       final locProvider = Provider.of<LocationProvider>(context, listen: false);
       final capProvider = Provider.of<CapsuleProvider>(context, listen: false);
+      final userProvider = Provider.of<UserProvider>(context, listen: false);
 
       await locProvider.getUserLocation();
       capProvider.loadCapsules();
+      await userProvider.loadUserData();
     });
   }
 
   void _showCapsuleDialog(Capsule capsule, double distance) {
     final cs = Theme.of(context).colorScheme;
     final tt = Theme.of(context).textTheme;
-
-    final bool canOpen = distance <= openThreshold;
     final double dialogWidth = MediaQuery.of(context).size.width * 0.8;
 
     showDialog(
@@ -61,58 +63,34 @@ class _HomePageState extends State<HomePage> {
             mainAxisSize: MainAxisSize.min,
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              // Affiche le nom du créateur avec fallback lisible
-              Text.rich(
-                TextSpan(
-                  children: [
-                    TextSpan(
-                      text: 'Créé par : ',
-                      style: tt.bodySmall?.copyWith(
-                        fontStyle: FontStyle.italic,
-                        color: cs.onSurface,
-                      ),
+              Row(
+                children: [
+                  Text(
+                    'Par : ',
+                    style: tt.bodySmall?.copyWith(fontStyle: FontStyle.italic),
+                  ),
+                  Text(
+                    capsule.author.isNotEmpty ? capsule.author : 'Inconnu',
+                    style: tt.bodySmall?.copyWith(
+                      fontWeight: FontWeight.bold,
+                      color: cs.primary,
                     ),
-                    TextSpan(
-                      text: (capsule.creator.isNotEmpty ? capsule.creator : 'Inconnu'),
-                      style: tt.bodySmall?.copyWith(
-                        fontWeight: FontWeight.w700,
-                        color: cs.onSurface,
-                      ),
-                    ),
-                  ],
-                ),
+                  ),
+                ],
               ),
-              const SizedBox(height: 8),
+              const SizedBox(height: 10),
               Text(
-                canOpen ? "🎉 Vous êtes sur place !" : "🔒 Trop loin (${distance.round()} m)",
+                "🔒 Trop loin (${distance.round()} m)",
                 style: tt.bodyMedium?.copyWith(
-                  color: canOpen ? cs.tertiary : cs.error,
-                  fontWeight: FontWeight.w700,
+                  color: cs.error,
+                  fontWeight: FontWeight.bold,
                 ),
               ),
               const SizedBox(height: 10),
-              if (!canOpen)
-                Text(
-                  "Rapprochez-vous à moins de ${openThreshold}m pour voir le contenu.",
-                  style: tt.bodyMedium?.copyWith(color: cs.onSurface),
-                ),
-              if (canOpen) ...[
-                const SizedBox(height: 10),
-                if (capsule.imageUrl != null)
-                  ClipRRect(
-                    borderRadius: BorderRadius.circular(12),
-                    child: Image.network(
-                      capsule.imageUrl!,
-                      height: 150,
-                      width: dialogWidth,
-                      fit: BoxFit.cover,
-                      errorBuilder: (c, e, s) =>
-                          Icon(Icons.broken_image, color: cs.onSurfaceVariant),
-                    ),
-                  ),
-                const SizedBox(height: 10),
-                Text(capsule.description, style: tt.bodyMedium),
-              ],
+              Text(
+                "Rapprochez-vous à moins de ${openThreshold}m pour débloquer le contenu et les commentaires.",
+                style: tt.bodyMedium?.copyWith(color: cs.onSurface),
+              ),
             ],
           ),
         ),
@@ -121,62 +99,17 @@ class _HomePageState extends State<HomePage> {
             onPressed: () => Navigator.pop(context),
             child: const Text("Fermer"),
           ),
-          if (canOpen)
-            TextButton(
-              onPressed: () {
-                Navigator.pop(context);
-                _openCapsule(capsule);
-              },
-              child: const Text("Ouvrir"),
-            ),
         ],
       ),
     );
   }
 
   void _openCapsule(Capsule capsule) {
-    final cs = Theme.of(context).colorScheme;
-    final tt = Theme.of(context).textTheme;
-    final double dialogWidth = MediaQuery.of(context).size.width * 0.8;
-
-    showDialog(
+    showModalBottomSheet(
       context: context,
-      builder: (context) => AlertDialog(
-        backgroundColor: cs.surface,
-        surfaceTintColor: cs.surfaceTint,
-        title: Text(capsule.title, style: tt.titleLarge),
-        content: Column(
-          mainAxisSize: MainAxisSize.min,
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            if (capsule.imageUrl != null)
-              ClipRRect(
-                borderRadius: BorderRadius.circular(12),
-                child: Image.network(
-                  capsule.imageUrl!,
-                  height: 180,
-                  width: dialogWidth,
-                  fit: BoxFit.cover,
-                  errorBuilder: (c, e, s) =>
-                      Icon(Icons.broken_image, color: cs.onSurfaceVariant),
-                ),
-              ),
-            const SizedBox(height: 10),
-            Text(
-              capsule.description.isNotEmpty
-                  ? capsule.description
-                  : 'Aucun contenu.',
-              style: tt.bodyMedium,
-            ),
-          ],
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(context),
-            child: const Text('Fermer'),
-          ),
-        ],
-      ),
+      isScrollControlled: true,
+      backgroundColor: Colors.transparent,
+      builder: (context) => CapsuleImmersiveView(capsule: capsule),
     );
   }
 
@@ -214,10 +147,7 @@ class _HomePageState extends State<HomePage> {
             children: [
               Icon(Icons.location_off, size: 50, color: cs.error),
               const SizedBox(height: 10),
-              Text(
-                locationProvider.error ?? "Position introuvable",
-                style: tt.bodyMedium,
-              ),
+              Text(locationProvider.error ?? "Position introuvable"),
               const SizedBox(height: 20),
               ElevatedButton(
                 onPressed: () => locationProvider.getUserLocation(),
@@ -265,17 +195,11 @@ class _HomePageState extends State<HomePage> {
         ),
         children: [
           TileLayer(
-            urlTemplate: 'https://tile.openstreetmap.org/{z}/{x}/{y}.png',
+            urlTemplate: 'https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}.png',
             userAgentPackageName: 'com.timecapsule.app',
           ),
           MarkerLayer(
             markers: [
-              Marker(
-                point: userLatLng,
-                width: 40,
-                height: 40,
-                child: Icon(Icons.navigation, color: cs.primary, size: 30),
-              ),
               ...nearbyCapsules.map((capsule) {
                 final dist = locationProvider.getDistanceFromUser(
                   capsule.latitude,
@@ -283,56 +207,45 @@ class _HomePageState extends State<HomePage> {
                 );
 
                 final bool isMine =
-                    currentUser != null && capsule.creator == currentUser;
-
-                final String flagAsset = isMine
-                    ? 'assets/icons/flag_orange.png'
-                    : (dist <= 50
-                          ? 'assets/icons/flag_vert.png'
-                          : 'assets/icons/flag_rouge.png');
+                    currentUser != null && capsule.author == currentUser;
 
                 return Marker(
                   point: LatLng(capsule.latitude, capsule.longitude),
-                  width: 72,
-                  height: 72,
-                  child: GestureDetector(
+                  width: 80,
+                  height: 80,
+                  child: CapsuleMarker(
+                    capsule: capsule,
+                    isMine: isMine,
+                    distance: dist,
                     onTap: () {
-                      if (dist <= openThreshold) {
+                      if (dist <= openThreshold || isMine) {
                         _openCapsule(capsule);
                       } else {
                         _showCapsuleDialog(capsule, dist);
                       }
                     },
-                    child: Column(
-                      mainAxisSize: MainAxisSize.min,
-                      children: [
-                        Image.asset(flagAsset, width: 22, height: 22),
-                        const SizedBox(height: 4),
-                        Container(
-                          padding: const EdgeInsets.symmetric(
-                            horizontal: 6,
-                            vertical: 3,
-                          ),
-                          decoration: BoxDecoration(
-                            color: cs.surfaceContainerHighest.withOpacity(0.85),
-                            borderRadius: BorderRadius.circular(6),
-                            border: Border.all(color: cs.outlineVariant),
-                          ),
-                          constraints: const BoxConstraints(maxWidth: 90),
-                          child: Text(
-                            capsule.title,
-                            style: tt.labelSmall?.copyWith(
-                              fontWeight: FontWeight.w700,
-                            ),
-                            overflow: TextOverflow.ellipsis,
-                            textAlign: TextAlign.center,
-                          ),
-                        ),
-                      ],
-                    ),
                   ),
                 );
               }),
+              Marker(
+                point: userLatLng,
+                width: 25,
+                height: 25,
+                child: Container(
+                  decoration: BoxDecoration(
+                    color: Colors.blueAccent,
+                    shape: BoxShape.circle,
+                    border: Border.all(color: Colors.white, width: 3),
+                    boxShadow: [
+                      BoxShadow(
+                        color: Colors.black.withOpacity(0.3),
+                        blurRadius: 5,
+                        offset: const Offset(0, 3),
+                      ),
+                    ],
+                  ),
+                ),
+              ),
             ],
           ),
         ],

@@ -1,7 +1,4 @@
 import 'package:flutter/material.dart';
-import 'package:provider/provider.dart';
-import '../providers/user_provider.dart';
-import '../services/auth_service.dart';
 import '../routes/routes.dart';
 
 class MainScreen extends StatefulWidget {
@@ -15,7 +12,6 @@ class MainScreen extends StatefulWidget {
 }
 
 class _MainScreenState extends State<MainScreen> {
-  int _selectedIndex = 0;
   late Widget _content;
 
   @override
@@ -33,31 +29,11 @@ class _MainScreenState extends State<MainScreen> {
         arguments: arguments, 
         onNavigate: _setContent,
       );
-      
-      if (route == '/dashboard') _selectedIndex = 0;
-      if (route == '/profile') _selectedIndex = 1;
     });
   }
-
-  Future<void> _logout() async {
-    await AuthService.logout();
-
-    if (!mounted) return;
-
-    Provider.of<UserProvider>(context, listen: false).clearUser();
-    Navigator.pushReplacementNamed(context, '/login');
-  }
-
-  void _onSidebarItemTapped(String route) {
-    setState(() {
-      _setContent(route);
-    });
-  }
-
 
   @override
   Widget build(BuildContext context) {
-    final theme = Theme.of(context);
 
     return Scaffold(
       body: Stack(

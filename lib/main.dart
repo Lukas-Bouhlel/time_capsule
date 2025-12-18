@@ -5,12 +5,15 @@ import 'theme.dart';
 import 'providers/location_provider.dart';
 import 'providers/capsule_provider.dart';
 import 'providers/user_provider.dart';
+import 'providers/comment_provider.dart';
 import 'routes/router.dart';
 import 'pages/home_page.dart';
+import 'package:timeago/timeago.dart' as timeago;
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
   await dotenv.load(fileName: ".env");
+  timeago.setLocaleMessages('fr', timeago.FrMessages());
 
   try {
     await dotenv.load(fileName: ".env");
@@ -32,6 +35,7 @@ class MyApp extends StatelessWidget {
         ChangeNotifierProvider(create: (_) => LocationProvider()),
         ChangeNotifierProvider(create: (_) => CapsuleProvider()),
         ChangeNotifierProvider(create: (_) => UserProvider()),
+        ChangeNotifierProvider(create: (_) => CommentProvider()),
       ],
       child: MaterialApp(
         title: 'TimeCapsule',

@@ -28,7 +28,8 @@ class _LoginPageState extends State<LoginPage> {
   Future<void> _login() async {
     final cs = Theme.of(context).colorScheme;
 
-    if (_emailController.text.trim().isEmpty || _passwordController.text.isEmpty) {
+    if (_emailController.text.trim().isEmpty ||
+        _passwordController.text.isEmpty) {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
           content: const Text("Veuillez saisir email et mot de passe."),
@@ -63,7 +64,9 @@ class _LoginPageState extends State<LoginPage> {
     } else {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
-          content: const Text("Échec de la connexion. Vérifiez vos identifiants."),
+          content: const Text(
+            "Échec de la connexion. Vérifiez vos identifiants.",
+          ),
           backgroundColor: cs.error,
         ),
       );
@@ -149,10 +152,13 @@ class _LoginPageState extends State<LoginPage> {
                       hint: "Mot de passe",
                       suffixIcon: IconButton(
                         icon: Icon(
-                          _obscureText ? Icons.visibility_off : Icons.visibility,
+                          _obscureText
+                              ? Icons.visibility_off
+                              : Icons.visibility,
                           color: cs.onSurfaceVariant,
                         ),
-                        onPressed: () => setState(() => _obscureText = !_obscureText),
+                        onPressed: () =>
+                            setState(() => _obscureText = !_obscureText),
                       ),
                     ),
                   ),
@@ -167,13 +173,13 @@ class _LoginPageState extends State<LoginPage> {
                     height: 50,
                     child: FilledButton(
                       onPressed: _isLoading ? null : _login,
-                     style: FilledButton.styleFrom(
-                      backgroundColor: cs.primary,
-                      foregroundColor: Colors.white, // TEXTE BLANC
-                      shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(12),
+                      style: FilledButton.styleFrom(
+                        backgroundColor: cs.primary,
+                        foregroundColor: Colors.white,
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(12),
+                        ),
                       ),
-                    ),
                       child: _isLoading
                           ? SizedBox(
                               height: 20,
@@ -207,31 +213,6 @@ class _LoginPageState extends State<LoginPage> {
                         onTap: () {
                           Navigator.push(
                             context,
-                            MaterialPageRoute(builder: (context) => const RegisterPage()),
-                          );
-                        },
-                        child: Text(
-                          "S'inscrire",
-                          style: tt.bodyMedium?.copyWith(
-                            color: cs.primary,
-                            fontWeight: FontWeight.w800,
-                          ),
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
-                const SizedBox(height: 20),
-                DelayedAnimation(
-                  delay: 1000,
-                  child: Row(
-                    mainAxisAlignment: MainAxisAlignment.center,
-                    children: [
-                      const Text("Pas encore de compte ? "),
-                      GestureDetector(
-                        onTap: () {
-                          Navigator.push(
-                            context,
                             MaterialPageRoute(
                               builder: (context) => const RegisterPage(),
                             ),
@@ -239,9 +220,9 @@ class _LoginPageState extends State<LoginPage> {
                         },
                         child: Text(
                           "S'inscrire",
-                          style: TextStyle(
-                            color: theme.primaryColor,
-                            fontWeight: FontWeight.bold,
+                          style: tt.bodyMedium?.copyWith(
+                            color: cs.primary,
+                            fontWeight: FontWeight.w800,
                           ),
                         ),
                       ),

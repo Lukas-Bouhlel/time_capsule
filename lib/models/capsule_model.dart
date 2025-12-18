@@ -5,7 +5,7 @@ class Capsule {
   final String? imageUrl;
   final double latitude;
   final double longitude;
-  final String creator;
+  final String author;
 
   Capsule({
     required this.id,
@@ -14,23 +14,23 @@ class Capsule {
     this.imageUrl,
     required this.latitude,
     required this.longitude,
-    required this.creator,
+    required this.author,
   });
 
   factory Capsule.fromJson(Map<String, dynamic> json) {
+    String? img = json['imageUrl']?.toString();
+    if (img != null && img.contains('localhost')) {
+      img = img.replaceAll('localhost', '10.0.2.2');
+    }
+
     return Capsule(
       id: json['id'].toString(),
-      title: json['title'] ?? 'Sans titre',
+      title: json['title'] ?? '',
       description: json['description'] ?? '',
-      imageUrl: json['imageUrl'] ?? json['image'] ?? json['image_url'],
-      latitude: json['latitude'] is String
-          ? double.parse(json['latitude'])
-          : (json['latitude'] ?? 0.0),
-      longitude: json['longitude'] is String
-          ? double.parse(json['longitude'])
-          : (json['longitude'] ?? 0.0),
-      // Accept multiple possible keys for the creator coming from the API
-      creator: (json['author'] ?? json['creator'] ?? json['username'] ?? json['user'] ?? json['createdBy'] ?? 'Inconnu').toString(),
+      imageUrl: img,
+      latitude: (json['latitude'] as num).toDouble(),
+      longitude: (json['longitude'] as num).toDouble(),
+      author: json['author'] ?? 'Inconnu',
     );
   }
 }

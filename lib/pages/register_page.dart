@@ -189,7 +189,7 @@ class _RegisterPageState extends State<RegisterPage> {
                       onPressed: _isLoading ? null : _register,
                       style: FilledButton.styleFrom(
                         backgroundColor: cs.primary,
-                        foregroundColor: Colors.white, // texte blanc comme demandé
+                        foregroundColor: Colors.white,
                         shape: RoundedRectangleBorder(
                           borderRadius: BorderRadius.circular(12),
                         ),

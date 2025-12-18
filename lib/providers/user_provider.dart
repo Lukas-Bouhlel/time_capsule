@@ -5,7 +5,7 @@ class UserProvider with ChangeNotifier {
   int? id;
   String? username;
   String? email;
-  bool isInitialized = false; // NOUVEAU
+  bool isInitialized = false;
 
   Future<void> loadUserData() async {
     try {
@@ -21,7 +21,7 @@ class UserProvider with ChangeNotifier {
     } catch (e) {
       print("Erreur UserProvider: $e");
     } finally {
-      isInitialized = true; // On marque comme terminé, même si échec
+      isInitialized = true;
       notifyListeners();
     }
   }

@@ -127,7 +127,6 @@ class _CreateCapsulePageState extends State<CreateCapsulePage> {
           key: _formKey,
           child: Column(
             children: [
-              // Photo
               GestureDetector(
                 onTap: () => _pickImage(ImageSource.camera),
                 child: Container(
@@ -159,10 +158,7 @@ class _CreateCapsulePageState extends State<CreateCapsulePage> {
                       : null,
                 ),
               ),
-
               const SizedBox(height: 20),
-
-              // Titre
               TextFormField(
                 controller: _titleController,
                 decoration: const InputDecoration(
@@ -171,10 +167,7 @@ class _CreateCapsulePageState extends State<CreateCapsulePage> {
                 ),
                 validator: (v) => (v == null || v.trim().isEmpty) ? 'Titre requis' : null,
               ),
-
               const SizedBox(height: 10),
-
-              // Description
               TextFormField(
                 controller: _descController,
                 decoration: const InputDecoration(

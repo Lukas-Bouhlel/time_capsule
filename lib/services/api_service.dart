@@ -1,94 +1,92 @@
 import 'dart:convert';
 import 'dart:io';
-import 'package:http/io_client.dart';
 import 'package:http/http.dart' as http;
-import 'package:flutter_dotenv/flutter_dotenv.dart';
+import 'package:http/io_client.dart';
 import 'package:shared_preferences/shared_preferences.dart';
-
-HttpClient getHttpClient() {
-  HttpClient httpClient = HttpClient();
-  httpClient.badCertificateCallback = (cert, host, port) => true;
-  return httpClient;
-}
-
-IOClient getIoClient() {
-  return IOClient(getHttpClient());
-}
+import 'package:flutter_dotenv/flutter_dotenv.dart';
 
 class ApiService {
-  final String baseUrl = dotenv.env['API_URL'] ?? ''; 
-  final IOClient client = getIoClient();
+  final String baseUrl = dotenv.env['API_URL'] ?? 'http://10.0.2.2:3000';
 
-  Future<String?> _getToken() async {
-    SharedPreferences prefs = await SharedPreferences.getInstance();
-    return prefs.getString('jwt_token');
+  HttpClient getHttpClient() {
+    HttpClient httpClient = HttpClient();
+    httpClient.badCertificateCallback = (cert, host, port) => true;
+    return httpClient;
   }
 
-  Future<http.Response> request(
-    String method,
-    String endpoint, {
-    Map<String, dynamic>? body,
-    bool isMultipart = false,
-    File? imageFile,
-    String? imageFieldName,
-  }) async {
+  Future<http.Response> request(String method, String endpoint,
+      {Map<String, dynamic>? body,
+      bool isMultipart = false,
+      File? imageFile,
+      String? imageFieldName}) async {
+    
     final uri = Uri.parse('$baseUrl$endpoint');
-    
-    final token = await _getToken();
-    
-    Map<String, String> headers = {};
-    if (token != null && token.isNotEmpty) {
+    final ioClient = IOClient(getHttpClient());
+
+    SharedPreferences prefs = await SharedPreferences.getInstance();
+    String? token = prefs.getString('jwt_token');
+
+    Map<String, String> headers = {
+      'Accept': 'application/json',
+    };
+
+    if (token != null) {
       headers['Authorization'] = 'Bearer $token';
+      print("🔑 Token ajouté à la requête : ${token.substring(0, 10)}...");
     }
 
-    if (isMultipart && imageFile != null) {
-      print('📤 [API] Envoi MULTIPART vers : $uri');
-      
-      var request = http.MultipartRequest(method, uri);
-      
-      request.headers.addAll(headers);
-      
-      print("🛑 STOP ! VERIFICATION DU TOKEN : ${request.headers['Authorization']}");
-      
-      body?.forEach((key, value) {
-        request.fields[key] = value.toString();
-      });
-
-      request.files.add(await http.MultipartFile.fromPath(
-        imageFieldName ?? 'image',
-        imageFile.path,
-      ));
-
-      var streamedResponse = await request.send();
-      return await http.Response.fromStream(streamedResponse);
+    if (!isMultipart) {
+      headers['Content-Type'] = 'application/json';
     }
 
-    print('📞 [API] Appel $method vers : $uri');
-    
-    headers['Content-Type'] = 'application/json';
+    print('📞 [API] $method vers : $uri');
 
-    http.Response response;
     try {
-      switch (method.toUpperCase()) {
-        case 'GET':
-          response = await client.get(uri, headers: headers);
-          break;
-        case 'POST':
-          response = await client.post(uri, headers: headers, body: jsonEncode(body));
-          break;
-        case 'PUT':
-          response = await client.put(uri, headers: headers, body: jsonEncode(body));
-          break;
-        case 'DELETE':
-          response = await client.delete(uri, headers: headers);
-          break;
-        default:
-          throw Exception('Méthode HTTP non supportée');
+      http.Response response;
+
+      if (isMultipart && imageFile != null) {
+        var request = http.MultipartRequest(method, uri);
+        request.headers.addAll(headers);
+        
+        if (body != null) {
+          body.forEach((key, value) {
+            request.fields[key] = value.toString();
+          });
+        }
+        
+        request.files.add(await http.MultipartFile.fromPath(
+          imageFieldName ?? 'image',
+          imageFile.path,
+        ));
+
+        var streamedResponse = await ioClient.send(request);
+        response = await http.Response.fromStream(streamedResponse);
+      } 
+
+      else {
+        switch (method) {
+          case 'POST':
+            response = await ioClient.post(uri, headers: headers, body: jsonEncode(body));
+            break;
+          case 'PUT':
+            response = await ioClient.put(uri, headers: headers, body: jsonEncode(body));
+            break;
+          case 'DELETE':
+            response = await ioClient.delete(uri, headers: headers);
+            break;
+          case 'GET':
+          default:
+            response = await ioClient.get(uri, headers: headers);
+            break;
+        }
       }
+      
+      print('✅ [API] Réponse : ${response.statusCode}');
       return response;
+
     } catch (e) {
-      print('❌ [API] Erreur technique : $e');
-      rethrow;
+      print('❌ [API] Erreur : $e');
+      throw Exception('Erreur connexion serveur');
     }
   }
 }
