@@ -221,6 +221,33 @@ class _LoginPageState extends State<LoginPage> {
                     ],
                   ),
                 ),
+                const SizedBox(height: 20),
+                DelayedAnimation(
+                  delay: 1000,
+                  child: Row(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      const Text("Pas encore de compte ? "),
+                      GestureDetector(
+                        onTap: () {
+                          Navigator.push(
+                            context,
+                            MaterialPageRoute(
+                              builder: (context) => const RegisterPage(),
+                            ),
+                          );
+                        },
+                        child: Text(
+                          "S'inscrire",
+                          style: TextStyle(
+                            color: theme.primaryColor,
+                            fontWeight: FontWeight.bold,
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
               ],
             ),
           ),
