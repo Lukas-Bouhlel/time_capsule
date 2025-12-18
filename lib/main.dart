@@ -6,6 +6,7 @@ import 'providers/location_provider.dart';
 import 'providers/capsule_provider.dart';
 import 'providers/user_provider.dart';
 import 'routes/router.dart';
+import 'pages/home_page.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -35,7 +36,10 @@ class MyApp extends StatelessWidget {
       child: MaterialApp(
         title: 'TimeCapsule',
         debugShowCheckedModeBanner: false,
-        theme: AppTheme.lightTheme,
+        theme: MaterialTheme(ThemeData.light().textTheme).light(),
+        darkTheme: MaterialTheme(ThemeData.dark().textTheme).dark(),
+        themeMode: ThemeMode.system,
+        home: const HomePage(),
         onGenerateRoute: AppRouter.generateRoute,
         initialRoute: '/', 
       ),
