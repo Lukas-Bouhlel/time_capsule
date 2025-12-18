@@ -16,8 +16,16 @@ class _CreateCapsulePageState extends State<CreateCapsulePage> {
   final _formKey = GlobalKey<FormState>();
   final _titleController = TextEditingController();
   final _descController = TextEditingController();
+
   File? _selectedImage;
   bool _isUploading = false;
+
+  @override
+  void dispose() {
+    _titleController.dispose();
+    _descController.dispose();
+    super.dispose();
+  }
 
   Future<Position> _determinePosition() async {
     bool serviceEnabled;
@@ -38,10 +46,11 @@ class _CreateCapsulePageState extends State<CreateCapsulePage> {
 
     if (permission == LocationPermission.deniedForever) {
       return Future.error(
-          'Les permissions sont définitivement refusées. Allez dans les paramètres pour autoriser.');
+        'Les permissions sont définitivement refusées. Allez dans les paramètres pour autoriser.',
+      );
     }
 
-    return await Geolocator.getCurrentPosition();
+    return Geolocator.getCurrentPosition();
   }
 
   Future<void> _pickImage(ImageSource source) async {
@@ -49,16 +58,19 @@ class _CreateCapsulePageState extends State<CreateCapsulePage> {
     final pickedFile = await picker.pickImage(source: source, imageQuality: 50);
 
     if (pickedFile != null) {
-      setState(() {
-        _selectedImage = File(pickedFile.path);
-      });
+      setState(() => _selectedImage = File(pickedFile.path));
     }
   }
 
- Future<void> _submitCapsule() async {
+  Future<void> _submitCapsule() async {
+    final cs = Theme.of(context).colorScheme;
+
     if (!_formKey.currentState!.validate() || _selectedImage == null) {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Veuillez remplir tout et ajouter une photo !')),
+        SnackBar(
+          content: const Text('Veuillez remplir tout et ajouter une photo !'),
+          backgroundColor: cs.error,
+        ),
       );
       return;
     }
@@ -66,50 +78,37 @@ class _CreateCapsulePageState extends State<CreateCapsulePage> {
     setState(() => _isUploading = true);
 
     try {
-      print("📍 Récupération de la position...");
-      Position position = await _determinePosition();
-      print("✅ Position trouvée : ${position.latitude}, ${position.longitude}");
+      final position = await _determinePosition();
 
-      print("🚀 Envoi de la capsule au Provider...");
-      
       await Provider.of<CapsuleProvider>(context, listen: false).addCapsule(
-        title: _titleController.text,
-        description: _descController.text,
+        title: _titleController.text.trim(),
+        description: _descController.text.trim(),
         imageFile: _selectedImage!,
         lat: position.latitude,
         long: position.longitude,
       );
 
-      print("🎉 Succès !");
+      if (!mounted) return;
 
-      if (mounted) {
-        Navigator.pop(context);
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text('🎉 Capsule enterrée avec succès !'),
-            backgroundColor: Colors.green,
-          ),
-        );
-      }
+      Navigator.pop(context);
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: const Text('🎉 Capsule enterrée avec succès !'),
+          backgroundColor: cs.tertiary,
+        ),
+      );
     } catch (e) {
-      print("❌ Erreur dans CreateCapsulePage : $e");
-      
-      if (mounted) {
-        if (e.toString().contains("401")) {
-           ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(
-              content: Text('Session expirée. Veuillez vous reconnecter.'),
-              backgroundColor: Colors.red,
-            ),
-          );
-          // Optionnel : Rediriger vers le login
-          // Navigator.pushReplacementNamed(context, '/login');
-        } else {
-          ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(content: Text('Erreur: $e'), backgroundColor: Colors.red),
-          );
-        }
-      }
+      if (!mounted) return;
+
+      final is401 = e.toString().contains("401");
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(
+            is401 ? 'Session expirée. Veuillez vous reconnecter.' : 'Erreur: $e',
+          ),
+          backgroundColor: cs.error,
+        ),
+      );
     } finally {
       if (mounted) setState(() => _isUploading = false);
     }
@@ -117,6 +116,9 @@ class _CreateCapsulePageState extends State<CreateCapsulePage> {
 
   @override
   Widget build(BuildContext context) {
+    final cs = Theme.of(context).colorScheme;
+    final tt = Theme.of(context).textTheme;
+
     return Scaffold(
       appBar: AppBar(title: const Text('Enterrer une Capsule')),
       body: SingleChildScrollView(
@@ -125,39 +127,54 @@ class _CreateCapsulePageState extends State<CreateCapsulePage> {
           key: _formKey,
           child: Column(
             children: [
+              // Photo
               GestureDetector(
-                onTap: () => _pickImage(ImageSource.camera), 
+                onTap: () => _pickImage(ImageSource.camera),
                 child: Container(
                   height: 200,
                   width: double.infinity,
                   decoration: BoxDecoration(
-                    color: Colors.grey[300],
-                    borderRadius: BorderRadius.circular(10),
+                    color: cs.surfaceContainerHigh,
+                    borderRadius: BorderRadius.circular(12),
+                    border: Border.all(color: cs.outlineVariant),
                     image: _selectedImage != null
-                        ? DecorationImage(image: FileImage(_selectedImage!), fit: BoxFit.cover)
+                        ? DecorationImage(
+                            image: FileImage(_selectedImage!),
+                            fit: BoxFit.cover,
+                          )
                         : null,
                   ),
                   child: _selectedImage == null
-                      ? const Column(
+                      ? Column(
                           mainAxisAlignment: MainAxisAlignment.center,
                           children: [
-                            Icon(Icons.camera_alt, size: 50, color: Colors.grey),
-                            Text("Appuyer pour prendre une photo"),
+                            Icon(Icons.camera_alt, size: 50, color: cs.onSurfaceVariant),
+                            const SizedBox(height: 8),
+                            Text(
+                              "Appuyer pour prendre une photo",
+                              style: tt.bodyMedium?.copyWith(color: cs.onSurfaceVariant),
+                            ),
                           ],
                         )
                       : null,
                 ),
               ),
+
               const SizedBox(height: 20),
+
+              // Titre
               TextFormField(
                 controller: _titleController,
                 decoration: const InputDecoration(
                   labelText: 'Titre du souvenir',
                   border: OutlineInputBorder(),
                 ),
-                validator: (v) => v!.isEmpty ? 'Titre requis' : null,
+                validator: (v) => (v == null || v.trim().isEmpty) ? 'Titre requis' : null,
               ),
+
               const SizedBox(height: 10),
+
+              // Description
               TextFormField(
                 controller: _descController,
                 decoration: const InputDecoration(
@@ -166,17 +183,17 @@ class _CreateCapsulePageState extends State<CreateCapsulePage> {
                 ),
                 maxLines: 3,
               ),
+
               const SizedBox(height: 30),
+
               _isUploading
                   ? const CircularProgressIndicator()
-                  : ElevatedButton.icon(
+                  : FilledButton.icon(
                       onPressed: _submitCapsule,
                       icon: const Icon(Icons.save),
                       label: const Text("Enterrer la Capsule"),
-                      style: ElevatedButton.styleFrom(
+                      style: FilledButton.styleFrom(
                         minimumSize: const Size(double.infinity, 50),
-                        backgroundColor: Theme.of(context).primaryColor,
-                        foregroundColor: Colors.white,
                       ),
                     ),
             ],

@@ -54,18 +54,6 @@ class _MainScreenState extends State<MainScreen> {
     });
   }
 
-  void _onBottomNavTapped(int index) {
-    if (index == 0) {
-      _onSidebarItemTapped('/dashboard');
-    } else if (index == 2) {
-      _logout();
-    } else {
-      setState(() {
-        _selectedIndex = index;
-        _onSidebarItemTapped('/profile');
-      });
-    }
-  }
 
   @override
   Widget build(BuildContext context) {
@@ -76,40 +64,6 @@ class _MainScreenState extends State<MainScreen> {
         children: [
           Scaffold(
             body: _content,
-            bottomNavigationBar: BottomNavigationBar(
-              currentIndex: _selectedIndex,
-              onTap: _onBottomNavTapped,
-              backgroundColor: theme.bottomNavigationBarTheme.backgroundColor,
-              selectedItemColor:
-                  theme.bottomNavigationBarTheme.selectedItemColor,
-              unselectedItemColor:
-                  theme.bottomNavigationBarTheme.unselectedItemColor,
-              showSelectedLabels: false,
-              showUnselectedLabels: false,
-              items: [
-                BottomNavigationBarItem(
-                  icon: Padding(
-                    padding: const EdgeInsets.only(top: 5.0),
-                    child: Icon(Icons.home),
-                  ),
-                  label: '',
-                ),
-                BottomNavigationBarItem(
-                  icon: Padding(
-                    padding: const EdgeInsets.only(top: 5.0),
-                    child: Icon(Icons.person),
-                  ),
-                  label: '',
-                ),
-                BottomNavigationBarItem(
-                  icon: Padding(
-                    padding: const EdgeInsets.only(top: 5.0),
-                    child: Icon(Icons.exit_to_app),
-                  ),
-                  label: '',
-                ),
-              ],
-            ),
           ),
         ],
       ),

@@ -18,15 +18,30 @@ class _LoginPageState extends State<LoginPage> {
   final TextEditingController _passwordController = TextEditingController();
   bool _isLoading = false;
 
+  @override
+  void dispose() {
+    _emailController.dispose();
+    _passwordController.dispose();
+    super.dispose();
+  }
+
   Future<void> _login() async {
-    if (_emailController.text.isEmpty || _passwordController.text.isEmpty) {
+    final cs = Theme.of(context).colorScheme;
+
+    if (_emailController.text.trim().isEmpty || _passwordController.text.isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: const Text("Veuillez saisir email et mot de passe."),
+          backgroundColor: cs.error,
+        ),
+      );
       return;
     }
 
     setState(() => _isLoading = true);
 
-    bool success = await AuthService.login(
-      _emailController.text,
+    final success = await AuthService.login(
+      _emailController.text.trim(),
       _passwordController.text,
     );
 
@@ -36,22 +51,53 @@ class _LoginPageState extends State<LoginPage> {
     if (success) {
       await context.read<UserProvider>().loadUserData();
       if (!mounted) return;
+
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: const Text("Connecté avec succès !"),
+          backgroundColor: cs.tertiary,
+        ),
+      );
+
       Navigator.pushReplacementNamed(context, '/dashboard');
     } else {
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text("Échec de la connexion. Vérifiez vos identifiants."),
-            backgroundColor: Colors.red,
-          ),
-        );
-      }
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: const Text("Échec de la connexion. Vérifiez vos identifiants."),
+          backgroundColor: cs.error,
+        ),
+      );
     }
   }
 
   @override
   Widget build(BuildContext context) {
-    final theme = Theme.of(context);
+    final cs = Theme.of(context).colorScheme;
+    final tt = Theme.of(context).textTheme;
+
+    InputDecoration fieldDecoration({
+      required String hint,
+      Widget? suffixIcon,
+    }) {
+      return InputDecoration(
+        hintText: hint,
+        filled: true,
+        fillColor: cs.surfaceContainerLowest,
+        border: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(12),
+          borderSide: BorderSide(color: cs.outlineVariant),
+        ),
+        enabledBorder: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(12),
+          borderSide: BorderSide(color: cs.outlineVariant),
+        ),
+        focusedBorder: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(12),
+          borderSide: BorderSide(color: cs.primary, width: 2),
+        ),
+        suffixIcon: suffixIcon,
+      );
+    }
 
     return Scaffold(
       body: Center(
@@ -61,115 +107,118 @@ class _LoginPageState extends State<LoginPage> {
             child: Column(
               mainAxisAlignment: MainAxisAlignment.center,
               children: [
-                SizedBox(height: 20),
+                const SizedBox(height: 20),
+
                 DelayedAnimation(
                   delay: 200,
                   child: Text(
                     "TimeCapsule",
-                    style: TextStyle(
-                      fontSize: 27,
-                      fontWeight: FontWeight.bold,
-                      color: theme.primaryColor,
+                    style: tt.headlineSmall?.copyWith(
+                      fontWeight: FontWeight.w800,
+                      color: cs.primary,
                     ),
                   ),
                 ),
-                SizedBox(height: 30),
+
+                const SizedBox(height: 30),
+
                 DelayedAnimation(
                   delay: 400,
                   child: TextField(
                     controller: _emailController,
-                    style: const TextStyle(color: Colors.black),
-                    cursorColor: Colors.black,
-                    decoration: InputDecoration(
-                      hintText: "Email",
-                      hintStyle: const TextStyle(color: Colors.black),
-                      labelStyle: const TextStyle(color: Colors.black),
-                      filled: true,
-                      fillColor: Colors.white,
-                      border: OutlineInputBorder(
-                        borderRadius: BorderRadius.circular(12),
-                      ),
-                      focusedBorder: OutlineInputBorder(
-                        borderRadius: BorderRadius.circular(12),
-                        borderSide: BorderSide(
-                          color: theme.colorScheme.onSurface,
-                          width: 2.0, // Épaisseur de la bordure
-                        ),
-                      ),
-                    ),
+                    keyboardType: TextInputType.emailAddress,
+                    textInputAction: TextInputAction.next,
+                    style: tt.bodyMedium?.copyWith(color: cs.onSurface),
+                    cursorColor: cs.primary,
+                    decoration: fieldDecoration(hint: "Email"),
                   ),
                 ),
-                SizedBox(height: 20),
+
+                const SizedBox(height: 20),
+
                 DelayedAnimation(
                   delay: 600,
                   child: TextField(
                     controller: _passwordController,
-                    style: const TextStyle(color: Colors.black),
-                    cursorColor: Colors.black,
                     obscureText: _obscureText,
-                    decoration: InputDecoration(
-                      hintText: "Mot de passe",
-                      hintStyle: const TextStyle(color: Colors.black),
-                      labelStyle: const TextStyle(color: Colors.black),
-                      filled: true,
-                      fillColor: Colors.white,
+                    textInputAction: TextInputAction.done,
+                    onSubmitted: (_) => _isLoading ? null : _login(),
+                    style: tt.bodyMedium?.copyWith(color: cs.onSurface),
+                    cursorColor: cs.primary,
+                    decoration: fieldDecoration(
+                      hint: "Mot de passe",
                       suffixIcon: IconButton(
                         icon: Icon(
-                          _obscureText
-                              ? Icons.visibility_off
-                              : Icons.visibility,
-                          color: Colors.black,
+                          _obscureText ? Icons.visibility_off : Icons.visibility,
+                          color: cs.onSurfaceVariant,
                         ),
-                        onPressed: () {
-                          setState(() {
-                            _obscureText = !_obscureText;
-                          });
-                        },
-                      ),
-                      border: OutlineInputBorder(
-                        borderRadius: BorderRadius.circular(12),
-                      ),
-                      focusedBorder: OutlineInputBorder(
-                        borderRadius: BorderRadius.circular(12),
-                        borderSide: BorderSide(
-                          color: theme.colorScheme.onSurface,
-                          width: 2.0, // Épaisseur de la bordure
-                        ),
+                        onPressed: () => setState(() => _obscureText = !_obscureText),
                       ),
                     ),
                   ),
                 ),
-                SizedBox(height: 30),
+
+                const SizedBox(height: 30),
+
                 DelayedAnimation(
                   delay: 800,
-                  child: ElevatedButton(
-                    style: ElevatedButton.styleFrom(
-                      backgroundColor: theme.colorScheme.onSurface,
-                      foregroundColor: theme.colorScheme.onPrimary,
-                      minimumSize: Size(double.infinity, 50),
+                  child: SizedBox(
+                    width: double.infinity,
+                    height: 50,
+                    child: FilledButton(
+                      onPressed: _isLoading ? null : _login,
+                     style: FilledButton.styleFrom(
+                      backgroundColor: cs.primary,
+                      foregroundColor: Colors.white, // TEXTE BLANC
                       shape: RoundedRectangleBorder(
                         borderRadius: BorderRadius.circular(12),
                       ),
                     ),
-                    onPressed: _isLoading
-                        ? null
-                        : _login, // Désactive le bouton si chargement
-                    child: _isLoading
-                        ? SizedBox(
-                            height: 20,
-                            width: 20,
-                            child: CircularProgressIndicator(
-                              color: Colors.white,
-                              strokeWidth: 2,
+                      child: _isLoading
+                          ? SizedBox(
+                              height: 20,
+                              width: 20,
+                              child: CircularProgressIndicator(
+                                color: cs.onPrimary,
+                                strokeWidth: 2,
+                              ),
+                            )
+                          : Text(
+                              "SE CONNECTER",
+                              style: tt.labelLarge?.copyWith(
+                                color: Colors.white,
+                                fontWeight: FontWeight.w800,
+                                letterSpacing: 0.4,
+                              ),
                             ),
-                          )
-                        : Text(
-                            "SE CONNECTER",
-                            style: TextStyle(
-                              fontSize: 12,
-                              fontWeight: FontWeight.bold,
-                            ),
+                    ),
+                  ),
+                ),
+
+                const SizedBox(height: 20),
+
+                DelayedAnimation(
+                  delay: 1000,
+                  child: Row(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      Text("Pas encore de compte ? ", style: tt.bodyMedium),
+                      GestureDetector(
+                        onTap: () {
+                          Navigator.push(
+                            context,
+                            MaterialPageRoute(builder: (context) => const RegisterPage()),
+                          );
+                        },
+                        child: Text(
+                          "S'inscrire",
+                          style: tt.bodyMedium?.copyWith(
+                            color: cs.primary,
+                            fontWeight: FontWeight.w800,
                           ),
+                        ),
+                      ),
+                    ],
                   ),
                 ),
                 const SizedBox(height: 20),
