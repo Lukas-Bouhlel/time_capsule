@@ -55,51 +55,66 @@ class _HomePageState extends State<HomePage> {
         backgroundColor: cs.surface,
         surfaceTintColor: cs.surfaceTint,
         title: Text(capsule.title, style: tt.titleLarge),
-        content: Column(
-          mainAxisSize: MainAxisSize.min,
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Text(
-              'Créé par : ${capsule.creator}',
-              style: tt.bodySmall?.copyWith(
-                fontStyle: FontStyle.italic,
-                color: cs.onSurfaceVariant,
-              ),
-            ),
-            const SizedBox(height: 8),
-            Text(
-              canOpen
-                  ? "🎉 Vous êtes sur place !"
-                  : "🔒 Trop loin (${distance.round()} m)",
-              style: tt.bodyMedium?.copyWith(
-                color: canOpen ? cs.tertiary : cs.error,
-                fontWeight: FontWeight.w700,
-              ),
-            ),
-            const SizedBox(height: 10),
-            if (!canOpen)
-              Text(
-                "Rapprochez-vous à moins de ${openThreshold}m pour voir le contenu.",
-                style: tt.bodyMedium?.copyWith(color: cs.onSurface),
-              ),
-            if (canOpen) ...[
-              const SizedBox(height: 10),
-              if (capsule.imageUrl != null)
-                ClipRRect(
-                  borderRadius: BorderRadius.circular(12),
-                  child: Image.network(
-                    capsule.imageUrl!,
-                    height: 150,
-                    width: dialogWidth,
-                    fit: BoxFit.cover,
-                    errorBuilder: (c, e, s) =>
-                        Icon(Icons.broken_image, color: cs.onSurfaceVariant),
-                  ),
+        content: SizedBox(
+          width: dialogWidth,
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              // Affiche le nom du créateur avec fallback lisible
+              Text.rich(
+                TextSpan(
+                  children: [
+                    TextSpan(
+                      text: 'Créé par : ',
+                      style: tt.bodySmall?.copyWith(
+                        fontStyle: FontStyle.italic,
+                        color: cs.onSurface,
+                      ),
+                    ),
+                    TextSpan(
+                      text: (capsule.creator.isNotEmpty ? capsule.creator : 'Inconnu'),
+                      style: tt.bodySmall?.copyWith(
+                        fontWeight: FontWeight.w700,
+                        color: cs.onSurface,
+                      ),
+                    ),
+                  ],
                 ),
+              ),
+              const SizedBox(height: 8),
+              Text(
+                canOpen ? "🎉 Vous êtes sur place !" : "🔒 Trop loin (${distance.round()} m)",
+                style: tt.bodyMedium?.copyWith(
+                  color: canOpen ? cs.tertiary : cs.error,
+                  fontWeight: FontWeight.w700,
+                ),
+              ),
               const SizedBox(height: 10),
-              Text(capsule.description, style: tt.bodyMedium),
+              if (!canOpen)
+                Text(
+                  "Rapprochez-vous à moins de ${openThreshold}m pour voir le contenu.",
+                  style: tt.bodyMedium?.copyWith(color: cs.onSurface),
+                ),
+              if (canOpen) ...[
+                const SizedBox(height: 10),
+                if (capsule.imageUrl != null)
+                  ClipRRect(
+                    borderRadius: BorderRadius.circular(12),
+                    child: Image.network(
+                      capsule.imageUrl!,
+                      height: 150,
+                      width: dialogWidth,
+                      fit: BoxFit.cover,
+                      errorBuilder: (c, e, s) =>
+                          Icon(Icons.broken_image, color: cs.onSurfaceVariant),
+                    ),
+                  ),
+                const SizedBox(height: 10),
+                Text(capsule.description, style: tt.bodyMedium),
+              ],
             ],
-          ],
+          ),
         ),
         actions: [
           TextButton(
