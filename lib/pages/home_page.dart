@@ -65,16 +65,6 @@ class _HomePageState extends State<HomePage> {
             onPressed: () => Navigator.pop(context),
             child: const Text("Fermer"),
           ),
-          if (canOpen)
-            ElevatedButton(
-              onPressed: () {
-                Navigator.pop(context);
-                ScaffoldMessenger.of(context).showSnackBar(
-                  const SnackBar(content: Text("Capsule ouverte ! (Points +10)")),
-                );
-              },
-              child: const Text("OUVRIR"),
-            ),
         ],
       ),
     );
@@ -148,22 +138,12 @@ class _HomePageState extends State<HomePage> {
                     onTap: () => _showCapsuleDialog(capsule, dist),
                     child: Column(
                       children: [
-                        Icon(
-                          Icons.flag, 
-                          color: dist <= 50 ? Colors.green : Colors.red,
-                          size: 35
-                        ),
-                        Container(
-                          padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 2),
-                          decoration: BoxDecoration(
-                            color: Colors.white.withOpacity(0.8),
-                            borderRadius: BorderRadius.circular(4),
-                          ),
-                          child: Text(
-                            capsule.title,
-                            style: const TextStyle(fontSize: 10, fontWeight: FontWeight.bold),
-                            overflow: TextOverflow.ellipsis,
-                          ),
+                        Image.asset(
+                          dist <= 50
+                              ? 'assets/icons/flag_vert.png'
+                              : 'assets/icons/flag_rouge.png',
+                          width: 20,
+                          height: 20,
                         ),
                       ],
                     ),
@@ -179,6 +159,7 @@ class _HomePageState extends State<HomePage> {
         onPressed: () => Navigator.pushNamed(context, RouteManager.create),
         label: const Text("Enterrer ici"),
         icon: const Icon(Icons.add_location_alt),
+        foregroundColor: Colors.white,
       ),
       floatingActionButtonLocation: FloatingActionButtonLocation.centerFloat,
     );

@@ -107,6 +107,7 @@ class _CreateCapsulePageState extends State<CreateCapsulePage> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
+      backgroundColor: Theme.of(context).scaffoldBackgroundColor,
       appBar: AppBar(title: const Text('Enterrer une Capsule')),
       body: SingleChildScrollView(
         padding: const EdgeInsets.all(16.0),
