@@ -1,15 +1,43 @@
 import 'package:flutter/material.dart';
-import '../pages/home_page.dart';
-import '../pages/create_capsule_page.dart';
+import 'package:provider/provider.dart';
+import '../pages/login_page.dart';
+import '../providers/user_provider.dart';
+import '../services/auth_service.dart';
+import '../screens/main_screen.dart';
 
-class RouteManager {
-  static const String home = '/';
-  static const String create = '/create';
+class AppRouter {
+  static Route<dynamic> generateRoute(RouteSettings settings) {
+    return MaterialPageRoute(
+      builder: (context) {
+        return FutureBuilder<bool>(
+          future: AuthService.isAuthenticated(),
+          builder: (context, snapshot) {
+            if (snapshot.connectionState == ConnectionState.waiting) {
+              return const Scaffold(
+                body: Center(child: CircularProgressIndicator()),
+              );
+            }
+            if (snapshot.hasData && snapshot.data == true) {
+              return Consumer<UserProvider>(
+                builder: (context, userProvider, child) {
+                  if (!userProvider.isInitialized) {
+                    Future.microtask(() => userProvider.loadUserData());
+                    return const Scaffold(
+                      body: Center(child: CircularProgressIndicator()),
+                    );
+                  }
 
-  static Map<String, WidgetBuilder> getRoutes() {
-    return {
-      home: (context) => const HomePage(),
-      create: (context) => const CreateCapsulePage(),
-    };
+                  return MainScreen(
+                    initialRoute: settings.name,
+                    arguments: settings.arguments,
+                  );
+                },
+              );
+            }
+            return LoginPage();
+          },
+        );
+      },
+    );
   }
 }

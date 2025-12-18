@@ -1,64 +1,93 @@
 import 'dart:convert';
 import 'dart:io';
+import 'package:http/io_client.dart';
 import 'package:http/http.dart' as http;
 import 'package:flutter_dotenv/flutter_dotenv.dart';
-import '../models/capsule_model.dart';
+import 'package:shared_preferences/shared_preferences.dart';
+
+HttpClient getHttpClient() {
+  HttpClient httpClient = HttpClient();
+  httpClient.badCertificateCallback = (cert, host, port) => true;
+  return httpClient;
+}
+
+IOClient getIoClient() {
+  return IOClient(getHttpClient());
+}
 
 class ApiService {
-  final String baseUrl = '${dotenv.env['API_URL'] ?? ''}/api/capsules';
+  final String baseUrl = dotenv.env['API_URL'] ?? ''; 
+  final IOClient client = getIoClient();
 
-  Future<List<Capsule>> fetchCapsules() async {
-    final url = Uri.parse(baseUrl); 
-    print('📞 Appel GET vers : $url');
-    
-    try {
-      final response = await http.get(url);
-
-      if (response.statusCode == 200) {
-        List<dynamic> body = jsonDecode(response.body);
-        return body.map((dynamic item) => Capsule.fromJson(item)).toList();
-      } else {
-        throw Exception('Erreur serveur: ${response.statusCode}');
-      }
-    } catch (e) {
-      print('❌ Erreur API: $e');
-      rethrow;
-    }
+  Future<String?> _getToken() async {
+    SharedPreferences prefs = await SharedPreferences.getInstance();
+    return prefs.getString('jwt_token');
   }
 
-   Future<void> createCapsule({
-    required String title,
-    required String description,
-    required File imageFile,
-    required double lat,
-    required double long,
+  Future<http.Response> request(
+    String method,
+    String endpoint, {
+    Map<String, dynamic>? body,
+    bool isMultipart = false,
+    File? imageFile,
+    String? imageFieldName,
   }) async {
-    final url = Uri.parse(baseUrl);
-    print('📤 Envoi POST vers : $url');
+    final uri = Uri.parse('$baseUrl$endpoint');
+    
+    final token = await _getToken();
+    
+    Map<String, String> headers = {};
+    if (token != null && token.isNotEmpty) {
+      headers['Authorization'] = 'Bearer $token';
+    }
 
-    try {
-      var request = http.MultipartRequest('POST', url);
-
-      request.fields['title'] = title;
-      request.fields['description'] = description;
-      request.fields['latitude'] = lat.toString();
-      request.fields['longitude'] = long.toString();
+    if (isMultipart && imageFile != null) {
+      print('📤 [API] Envoi MULTIPART vers : $uri');
+      
+      var request = http.MultipartRequest(method, uri);
+      
+      request.headers.addAll(headers);
+      
+      print("🛑 STOP ! VERIFICATION DU TOKEN : ${request.headers['Authorization']}");
+      
+      body?.forEach((key, value) {
+        request.fields[key] = value.toString();
+      });
 
       request.files.add(await http.MultipartFile.fromPath(
-        'image',
+        imageFieldName ?? 'image',
         imageFile.path,
       ));
 
       var streamedResponse = await request.send();
-      var response = await http.Response.fromStream(streamedResponse);
+      return await http.Response.fromStream(streamedResponse);
+    }
 
-      if (response.statusCode == 201) {
-        print("✅ Capsule créée API succès");
-      } else {
-        throw Exception('Erreur upload API: ${response.statusCode} - ${response.body}');
+    print('📞 [API] Appel $method vers : $uri');
+    
+    headers['Content-Type'] = 'application/json';
+
+    http.Response response;
+    try {
+      switch (method.toUpperCase()) {
+        case 'GET':
+          response = await client.get(uri, headers: headers);
+          break;
+        case 'POST':
+          response = await client.post(uri, headers: headers, body: jsonEncode(body));
+          break;
+        case 'PUT':
+          response = await client.put(uri, headers: headers, body: jsonEncode(body));
+          break;
+        case 'DELETE':
+          response = await client.delete(uri, headers: headers);
+          break;
+        default:
+          throw Exception('Méthode HTTP non supportée');
       }
+      return response;
     } catch (e) {
-      print("❌ Erreur API Upload: $e");
+      print('❌ [API] Erreur technique : $e');
       rethrow;
     }
   }

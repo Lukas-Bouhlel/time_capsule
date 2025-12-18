@@ -2,13 +2,14 @@ import 'package:flutter/material.dart';
 import 'package:flutter_map/flutter_map.dart';
 import 'package:latlong2/latlong.dart';
 import 'package:provider/provider.dart';
+import 'package:time_capsule/pages/create_capsule_page.dart';
 import '../providers/capsule_provider.dart';
 import '../providers/location_provider.dart';
 import '../models/capsule_model.dart';
-import '../routes/router.dart';
 
 class HomePage extends StatefulWidget {
-  const HomePage({super.key});
+  final void Function(String route, {dynamic arguments})? onNavigate;
+  const HomePage({super.key, this.onNavigate});
 
   @override
   State<HomePage> createState() => _HomePageState();
@@ -17,11 +18,15 @@ class HomePage extends StatefulWidget {
 class _HomePageState extends State<HomePage> {
   final MapController _mapController = MapController();
 
-  @override
+@override
   void initState() {
     super.initState();
-    WidgetsBinding.instance.addPostFrameCallback((_) {
-      Provider.of<CapsuleProvider>(context, listen: false).loadCapsules();
+    WidgetsBinding.instance.addPostFrameCallback((_) async {
+      final locProvider = Provider.of<LocationProvider>(context, listen: false);
+      final capProvider = Provider.of<CapsuleProvider>(context, listen: false);
+      
+      await locProvider.getUserLocation();
+      capProvider.loadCapsules();
     });
   }
 
@@ -36,7 +41,9 @@ class _HomePageState extends State<HomePage> {
           mainAxisSize: MainAxisSize.min,
           children: [
             Text(
-              canOpen ? "🎉 Vous êtes sur place !" : "🔒 Trop loin (${distance.round()} m)",
+              canOpen
+                  ? "🎉 Vous êtes sur place !"
+                  : "🔒 Trop loin (${distance.round()} m)",
               style: TextStyle(
                 color: canOpen ? Colors.green : Colors.red,
                 fontWeight: FontWeight.bold,
@@ -44,8 +51,10 @@ class _HomePageState extends State<HomePage> {
             ),
             const SizedBox(height: 10),
             if (!canOpen)
-              const Text("Rapprochez-vous à moins de 50m pour voir le contenu."),
-            
+              const Text(
+                "Rapprochez-vous à moins de 50m pour voir le contenu.",
+              ),
+
             if (canOpen) ...[
               const SizedBox(height: 10),
               if (capsule.imageUrl != null)
@@ -57,7 +66,7 @@ class _HomePageState extends State<HomePage> {
                 ),
               const SizedBox(height: 10),
               Text(capsule.description),
-            ]
+            ],
           ],
         ),
         actions: [
@@ -70,7 +79,9 @@ class _HomePageState extends State<HomePage> {
               onPressed: () {
                 Navigator.pop(context);
                 ScaffoldMessenger.of(context).showSnackBar(
-                  const SnackBar(content: Text("Capsule ouverte ! (Points +10)")),
+                  const SnackBar(
+                    content: Text("Capsule ouverte ! (Points +10)"),
+                  ),
                 );
               },
               child: const Text("OUVRIR"),
@@ -85,7 +96,7 @@ class _HomePageState extends State<HomePage> {
     final capsuleProvider = Provider.of<CapsuleProvider>(context);
     final locationProvider = Provider.of<LocationProvider>(context);
 
-    if (locationProvider.isLoading || locationProvider.userPosition == null) {
+    if (locationProvider.isLoading) {
       return const Scaffold(
         body: Center(
           child: Column(
@@ -93,7 +104,27 @@ class _HomePageState extends State<HomePage> {
             children: [
               CircularProgressIndicator(),
               SizedBox(height: 10),
-              Text("Recherche du signal GPS..."),
+              Text("Acquisition du GPS..."),
+            ],
+          ),
+        ),
+      );
+    }
+
+    if (locationProvider.userPosition == null) {
+      return Scaffold(
+        body: Center(
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              const Icon(Icons.location_off, size: 50, color: Colors.red),
+              const SizedBox(height: 10),
+              Text(locationProvider.error ?? "Position introuvable"),
+              const SizedBox(height: 20),
+              ElevatedButton(
+                onPressed: () => locationProvider.getUserLocation(),
+                child: const Text("Réessayer"),
+              )
             ],
           ),
         ),
@@ -104,7 +135,10 @@ class _HomePageState extends State<HomePage> {
     final userLatLng = LatLng(userPos.latitude, userPos.longitude);
 
     final nearbyCapsules = capsuleProvider.capsules.where((capsule) {
-      double dist = locationProvider.getDistanceFromUser(capsule.latitude, capsule.longitude);
+      double dist = locationProvider.getDistanceFromUser(
+        capsule.latitude,
+        capsule.longitude,
+      );
       return dist <= 1000;
     }).toList();
 
@@ -115,15 +149,12 @@ class _HomePageState extends State<HomePage> {
           IconButton(
             icon: const Icon(Icons.refresh),
             onPressed: () => capsuleProvider.loadCapsules(),
-          )
+          ),
         ],
       ),
       body: FlutterMap(
         mapController: _mapController,
-        options: MapOptions(
-          initialCenter: userLatLng,
-          initialZoom: 16.0,
-        ),
+        options: MapOptions(initialCenter: userLatLng, initialZoom: 16.0),
         children: [
           TileLayer(
             urlTemplate: 'https://tile.openstreetmap.org/{z}/{x}/{y}.png',
@@ -135,11 +166,18 @@ class _HomePageState extends State<HomePage> {
                 point: userLatLng,
                 width: 40,
                 height: 40,
-                child: const Icon(Icons.navigation, color: Colors.blue, size: 30),
+                child: const Icon(
+                  Icons.navigation,
+                  color: Colors.blue,
+                  size: 30,
+                ),
               ),
               ...nearbyCapsules.map((capsule) {
-                double dist = locationProvider.getDistanceFromUser(capsule.latitude, capsule.longitude);
-                
+                double dist = locationProvider.getDistanceFromUser(
+                  capsule.latitude,
+                  capsule.longitude,
+                );
+
                 return Marker(
                   point: LatLng(capsule.latitude, capsule.longitude),
                   width: 60,
@@ -149,19 +187,25 @@ class _HomePageState extends State<HomePage> {
                     child: Column(
                       children: [
                         Icon(
-                          Icons.flag, 
+                          Icons.flag,
                           color: dist <= 50 ? Colors.green : Colors.red,
-                          size: 35
+                          size: 35,
                         ),
                         Container(
-                          padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 2),
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: 4,
+                            vertical: 2,
+                          ),
                           decoration: BoxDecoration(
-                            color: Colors.white.withOpacity(0.8),
+                            color: Colors.white.withValues(alpha: 0.8),
                             borderRadius: BorderRadius.circular(4),
                           ),
                           child: Text(
                             capsule.title,
-                            style: const TextStyle(fontSize: 10, fontWeight: FontWeight.bold),
+                            style: const TextStyle(
+                              fontSize: 10,
+                              fontWeight: FontWeight.bold,
+                            ),
                             overflow: TextOverflow.ellipsis,
                           ),
                         ),
@@ -174,9 +218,19 @@ class _HomePageState extends State<HomePage> {
           ),
         ],
       ),
-      
       floatingActionButton: FloatingActionButton.extended(
-        onPressed: () => Navigator.pushNamed(context, RouteManager.create),
+        onPressed: () async {
+          await Navigator.push(
+            context,
+            MaterialPageRoute(
+              builder: (context) => const CreateCapsulePage(),
+            ),
+          );
+
+          if (mounted) {
+            Provider.of<CapsuleProvider>(context, listen: false).loadCapsules();
+          }
+        },
         label: const Text("Enterrer ici"),
         icon: const Icon(Icons.add_location_alt),
       ),

@@ -1,12 +1,10 @@
 import 'dart:io';
 import 'package:flutter/material.dart';
-import 'package:flutter_dotenv/flutter_dotenv.dart';
 import '../models/capsule_model.dart';
-import '../services/api_service.dart';
+import '../services/capsule_service.dart';
 
 class CapsuleProvider with ChangeNotifier {
-  final ApiService _apiService = ApiService();
-  final String baseUrl = '${dotenv.env['API_URL'] ?? ''}/api/capsules';
+  final CapsuleService _capsuleService = CapsuleService();
 
   List<Capsule> _capsules = [];
   bool _isLoading = false;
@@ -18,11 +16,13 @@ class CapsuleProvider with ChangeNotifier {
 
   Future<void> loadCapsules() async {
     _isLoading = true;
+    _error = null;
     notifyListeners();
+    
     try {
-      _capsules = await _apiService.fetchCapsules();
+      _capsules = await _capsuleService.fetchCapsules();
     } catch (e) {
-      _error = "Erreur chargement: $e";
+      _error = "Impossible de charger les capsules : $e";
     } finally {
       _isLoading = false;
       notifyListeners();
@@ -37,10 +37,11 @@ class CapsuleProvider with ChangeNotifier {
     required double long,
   }) async {
     _isLoading = true;
+    _error = null;
     notifyListeners();
 
     try {
-      await _apiService.createCapsule(
+      await _capsuleService.createCapsule(
         title: title,
         description: description,
         imageFile: imageFile,
@@ -53,7 +54,7 @@ class CapsuleProvider with ChangeNotifier {
     } catch (e) {
       print("❌ Erreur Provider: $e");
       _error = e.toString();
-      rethrow;
+      rethrow; 
     } finally {
       _isLoading = false;
       notifyListeners();

@@ -16,16 +16,13 @@ class _CreateCapsulePageState extends State<CreateCapsulePage> {
   final _formKey = GlobalKey<FormState>();
   final _titleController = TextEditingController();
   final _descController = TextEditingController();
-  
   File? _selectedImage;
   bool _isUploading = false;
 
-  // --- 1. La fonction de sécurité pour le GPS ---
   Future<Position> _determinePosition() async {
     bool serviceEnabled;
     LocationPermission permission;
 
-    // Test si le GPS est activé
     serviceEnabled = await Geolocator.isLocationServiceEnabled();
     if (!serviceEnabled) {
       return Future.error('Le service de localisation est désactivé. Activez le GPS.');
@@ -47,10 +44,8 @@ class _CreateCapsulePageState extends State<CreateCapsulePage> {
     return await Geolocator.getCurrentPosition();
   }
 
-  // --- 2. Choisir une image ---
   Future<void> _pickImage(ImageSource source) async {
     final picker = ImagePicker();
-    // imageQuality: 50 permet de réduire la taille du fichier pour l'upload
     final pickedFile = await picker.pickImage(source: source, imageQuality: 50);
 
     if (pickedFile != null) {
@@ -60,8 +55,7 @@ class _CreateCapsulePageState extends State<CreateCapsulePage> {
     }
   }
 
-  // --- 3. Envoyer le formulaire ---
-  Future<void> _submitCapsule() async {
+ Future<void> _submitCapsule() async {
     if (!_formKey.currentState!.validate() || _selectedImage == null) {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(content: Text('Veuillez remplir tout et ajouter une photo !')),
@@ -72,10 +66,12 @@ class _CreateCapsulePageState extends State<CreateCapsulePage> {
     setState(() => _isUploading = true);
 
     try {
-      // ÉTAPE CRUCIALE : On demande la permission AVANT de récupérer la position
+      print("📍 Récupération de la position...");
       Position position = await _determinePosition();
+      print("✅ Position trouvée : ${position.latitude}, ${position.longitude}");
 
-      // Envoi au backend via le Provider
+      print("🚀 Envoi de la capsule au Provider...");
+      
       await Provider.of<CapsuleProvider>(context, listen: false).addCapsule(
         title: _titleController.text,
         description: _descController.text,
@@ -84,8 +80,10 @@ class _CreateCapsulePageState extends State<CreateCapsulePage> {
         long: position.longitude,
       );
 
+      print("🎉 Succès !");
+
       if (mounted) {
-        Navigator.pop(context); // Retour à l'accueil
+        Navigator.pop(context);
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(
             content: Text('🎉 Capsule enterrée avec succès !'),
@@ -94,10 +92,23 @@ class _CreateCapsulePageState extends State<CreateCapsulePage> {
         );
       }
     } catch (e) {
+      print("❌ Erreur dans CreateCapsulePage : $e");
+      
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Erreur: $e'), backgroundColor: Colors.red),
-        );
+        if (e.toString().contains("401")) {
+           ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(
+              content: Text('Session expirée. Veuillez vous reconnecter.'),
+              backgroundColor: Colors.red,
+            ),
+          );
+          // Optionnel : Rediriger vers le login
+          // Navigator.pushReplacementNamed(context, '/login');
+        } else {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(content: Text('Erreur: $e'), backgroundColor: Colors.red),
+          );
+        }
       }
     } finally {
       if (mounted) setState(() => _isUploading = false);
@@ -114,7 +125,6 @@ class _CreateCapsulePageState extends State<CreateCapsulePage> {
           key: _formKey,
           child: Column(
             children: [
-              // Zone de l'image
               GestureDetector(
                 onTap: () => _pickImage(ImageSource.camera), 
                 child: Container(
@@ -139,8 +149,6 @@ class _CreateCapsulePageState extends State<CreateCapsulePage> {
                 ),
               ),
               const SizedBox(height: 20),
-
-              // Champs texte
               TextFormField(
                 controller: _titleController,
                 decoration: const InputDecoration(
@@ -159,8 +167,6 @@ class _CreateCapsulePageState extends State<CreateCapsulePage> {
                 maxLines: 3,
               ),
               const SizedBox(height: 30),
-
-              // Bouton d'envoi
               _isUploading
                   ? const CircularProgressIndicator()
                   : ElevatedButton.icon(

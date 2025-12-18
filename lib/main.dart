@@ -4,6 +4,7 @@ import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'theme.dart';
 import 'providers/location_provider.dart';
 import 'providers/capsule_provider.dart';
+import 'providers/user_provider.dart';
 import 'routes/router.dart';
 
 void main() async {
@@ -29,13 +30,14 @@ class MyApp extends StatelessWidget {
       providers: [
         ChangeNotifierProvider(create: (_) => LocationProvider()),
         ChangeNotifierProvider(create: (_) => CapsuleProvider()),
+        ChangeNotifierProvider(create: (_) => UserProvider()),
       ],
       child: MaterialApp(
         title: 'TimeCapsule',
         debugShowCheckedModeBanner: false,
         theme: AppTheme.lightTheme,
-        initialRoute: RouteManager.home, 
-        routes: RouteManager.getRoutes(),
+        onGenerateRoute: AppRouter.generateRoute,
+        initialRoute: '/', 
       ),
     );
   }
